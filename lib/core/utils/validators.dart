@@ -1,0 +1,1 @@
+bool isPasswordValid(String s) => s.length >= 6;

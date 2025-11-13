@@ -1,0 +1,1 @@
+String formatCurrency(num value) => '\$${value.toStringAsFixed(2)}';
