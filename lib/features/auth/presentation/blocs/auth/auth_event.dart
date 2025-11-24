@@ -7,11 +7,19 @@ abstract class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class AuthWithEmailRequested extends AuthEvent {
+//
+// 🔵 Check Auth Status – runs at App start
+//
+class AuthCheckStatus extends AuthEvent {}
+
+//
+// 🔵 Login (Email & Password)
+//
+class AuthLoginRequested extends AuthEvent {
   final String email;
   final String password;
 
-  const AuthWithEmailRequested({
+  const AuthLoginRequested({
     required this.email,
     required this.password,
   });
@@ -20,8 +28,84 @@ class AuthWithEmailRequested extends AuthEvent {
   List<Object?> get props => [email, password];
 }
 
-class AuthWithGoogleRequested extends AuthEvent {}
+//
+// 🔵 Register
+//
+class AuthRegisterRequested extends AuthEvent {
+  final String name;
+  final String email;
+  final String password;
 
-class AuthWithAppleRequested extends AuthEvent {}
+  const AuthRegisterRequested({
+    required this.name,
+    required this.email,
+    required this.password,
+  });
 
-class AuthWithFacebookRequested extends AuthEvent {}
+  @override
+  List<Object?> get props => [name, email, password];
+}
+
+//
+// 🔵 Logout
+//
+class AuthLogoutRequested extends AuthEvent {}
+
+//
+// 🔵 Send Verification Code (email verification / reset password)
+//
+class AuthSendVerificationCode extends AuthEvent {
+  final String email;
+  final String type; // "email_verification" OR "password_reset"
+
+  const AuthSendVerificationCode({
+    required this.email,
+    required this.type,
+  });
+
+  @override
+  List<Object?> get props => [email, type];
+}
+
+//
+// 🔵 Verify Code
+//
+class AuthVerifyCode extends AuthEvent {
+  final String email;
+  final String code;
+  final String type;
+
+  const AuthVerifyCode({
+    required this.email,
+    required this.code,
+    required this.type,
+  });
+
+  @override
+  List<Object?> get props => [email, code, type];
+}
+
+//
+// 🔵 Reset Password
+//
+class AuthResetPassword extends AuthEvent {
+  final String email;
+  final String newPassword;
+
+  const AuthResetPassword({
+    required this.email,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object?> get props => [email, newPassword];
+}
+
+//
+// 🔵 Social Login (Google / Apple / Facebook)
+//
+class AuthGoogleRequested extends AuthEvent {}
+
+class AuthAppleRequested extends AuthEvent {}
+
+class AuthFacebookRequested extends AuthEvent {}

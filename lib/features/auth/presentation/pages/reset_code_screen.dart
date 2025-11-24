@@ -5,6 +5,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/router/route_path.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../blocs/reset_code/reset_code_bloc.dart';
+import '../blocs/verification/verification_event.dart';
 
 class ResetCodeScreen extends StatefulWidget {
   final String email;
@@ -21,13 +22,23 @@ class _ResetCodeScreenState extends State<ResetCodeScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ResetCodeBloc(sl<AuthRepository>()),
+      create: (_) =>
+          ResetCodeBloc(sl<AuthRepository>()),
       child: BlocConsumer<ResetCodeBloc, ResetCodeState>(
         listener: (context, state) {
           if (state.success) {
             Navigator.of(context).pushNamed(
               RoutePaths.resetPassword,
               arguments: {'email': widget.email},
+            );
+          }
+
+          if (state.errorMessage.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
@@ -47,6 +58,7 @@ class _ResetCodeScreenState extends State<ResetCodeScreen> {
                     style: TextStyle(fontSize: 16, color: Colors.black54),
                   ),
                   const SizedBox(height: 20),
+
                   TextField(
                     controller: _codeController,
                     keyboardType: TextInputType.number,
@@ -58,7 +70,9 @@ class _ResetCodeScreenState extends State<ResetCodeScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 30),
+
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -66,10 +80,22 @@ class _ResetCodeScreenState extends State<ResetCodeScreen> {
                       onPressed: state.isLoading
                           ? null
                           : () {
+                        final code = _codeController.text.trim();
+
+                        if (code.length != 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Enter a valid 6-digit code"),
+                            ),
+                          );
+                          return;
+                        }
+
                         context.read<ResetCodeBloc>().add(
                           VerifyResetCodeEvent(
                             email: widget.email,
-                            code: _codeController.text.trim(),
+                            code: code,
+                            type: VerificationType.passwordReset,
                           ),
                         );
                       },
@@ -80,9 +106,7 @@ class _ResetCodeScreenState extends State<ResetCodeScreen> {
                         ),
                       ),
                       child: state.isLoading
-                          ? const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                          ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                         "Verify Code",
                         style: TextStyle(
@@ -91,7 +115,7 @@ class _ResetCodeScreenState extends State<ResetCodeScreen> {
                         ),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),

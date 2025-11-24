@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../config/router/route_path.dart';
-import '../../../../config/theme/app_colors.dart';
 import '../../../../app/di.dart';
+import '../../../../config/theme/app_colors.dart';
+
 import '../../domain/repositories/auth_repository.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_state.dart';
-import '../widgets/login/email_login_form.dart';
-import '../widgets/login/login_button.dart';
-import '../widgets/login/login_footer.dart';
+import '../../../../core/services/session/session_manager.dart';
+
 import '../widgets/login/login_header.dart';
 import '../widgets/login/login_toggle.dart';
+import '../widgets/login/email_login_form.dart';
 import '../widgets/login/phone_login_form.dart';
+import '../widgets/login/login_button.dart';
 import '../widgets/login/social_login_buttons.dart';
+import '../widgets/login/login_footer.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,7 +27,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool isEmailSelected = true;
 
-  // ✅ الكنترولرز المشتركة
+  // Controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -40,52 +43,58 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AuthBloc(sl<AuthRepository>()),
+      create: (_) => AuthBloc(
+        repository: sl<AuthRepository>(),
+        session: sl<SessionManager>(),
+      ),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
-            Navigator.of(context).pushReplacementNamed(RoutePaths.home);
-          } else if (state is AuthFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+          if (state is AuthAuthenticated) {
+            Navigator.of(context)
+                .pushReplacementNamed(RoutePaths.mainLayout);
+          }
+
+          if (state is AuthFailure) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: Scaffold(
           body: SafeArea(
             child: SingleChildScrollView(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const LoginHeader(),
                   const SizedBox(height: 20),
 
-                  /// ✅ التبديل بين الإيميل ورقم الهاتف
+                  // Switch Email / Phone
                   LoginToggle(
                     isEmailSelected: isEmailSelected,
                     onChanged: (value) {
-                      setState(() => isEmailSelected = value);
+                      setState(() {
+                        isEmailSelected = value;
+                      });
                     },
                   ),
+
                   const SizedBox(height: 24),
 
-                  /// ✅ النموذج المناسب
-                  if (isEmailSelected)
-                    EmailLoginForm(
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                    )
-                  else
-                    PhoneLoginForm(
-                      phoneController: _phoneController,
-                      passwordController: _passwordController,
-                    ),
+                  // Forms
+                  isEmailSelected
+                      ? EmailLoginForm(
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                  )
+                      : PhoneLoginForm(
+                    phoneController: _phoneController,
+                    passwordController: _passwordController,
+                  ),
 
                   const SizedBox(height: 20),
 
-                  /// ✅ الزر الذكي (يعتمد على الحالة المختارة)
+                  // Login Button
                   LoginButton(
                     isEmailLogin: isEmailSelected,
                     emailController: _emailController,

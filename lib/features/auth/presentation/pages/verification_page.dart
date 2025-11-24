@@ -1,9 +1,10 @@
 import 'package:decoro/config/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../app/di.dart';
 import '../../../../config/router/route_path.dart';
 import '../../../../config/theme/app_colors.dart';
-import '../../data/repositories/auth_repository_impl.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../blocs/verification/verification_bloc.dart';
 import '../blocs/verification/verification_event.dart';
 import '../blocs/verification/verification_state.dart';
@@ -29,7 +30,7 @@ class _VerificationPageState extends State<VerificationPage> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => VerificationBloc(AuthRepositoryImpl())
+      create: (_) => VerificationBloc(sl<AuthRepository>())
         ..add(SendVerificationCode(widget.email, widget.type)),
       child: Scaffold(
         body: BlocConsumer<VerificationBloc, VerificationState>(

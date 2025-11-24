@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../../config/theme/app_colors.dart';
+
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
@@ -33,42 +34,48 @@ class LoginButton extends StatelessWidget {
                 ? null
                 : () {
               if (isEmailLogin) {
-                // تسجيل الدخول بالإيميل
                 final email = emailController.text.trim();
                 final password = passwordController.text.trim();
-                if (email.isNotEmpty && password.isNotEmpty) {
-                  context.read<AuthBloc>().add(
-                    AuthWithEmailRequested(
-                      email: email,
-                      password: password,
-                    ),
-                  );
-                } else {
+
+                if (email.isEmpty || password.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content:
-                        Text('Please enter email and password.')),
+                      content: Text(
+                          'Please enter email and password.'),
+                    ),
                   );
+                  return;
                 }
+
+                // 🔥 الحدث الصحيح حسب بنيتك الجديدة
+                context.read<AuthBloc>().add(
+                  AuthLoginRequested(
+                    email: email,
+                    password: password,
+                  ),
+                );
               } else {
-                // تسجيل الدخول برقم الهاتف (اختياري أو لاحقًا)
+                // Login باستخدام الهاتف (لاحقًا)
                 final phone = phoneController?.text.trim() ?? '';
                 final password = passwordController.text.trim();
-                if (phone.isNotEmpty && password.isNotEmpty) {
-                  // هنا لاحقًا ممكن نضيف حدث جديد: AuthWithPhoneRequested
+
+                if (phone.isEmpty || password.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content:
-                      Text('Phone login not implemented yet.'),
+                      Text('Please enter phone and password.'),
                     ),
                   );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                        Text('Please enter phone and password.')),
-                  );
+                  return;
                 }
+
+                // لم يُنفّذ بعد
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content:
+                    Text('Phone login not implemented yet.'),
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

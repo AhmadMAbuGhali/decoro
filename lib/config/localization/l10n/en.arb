@@ -1,6 +1,22 @@
 {
   "@@locale": "en",
+
   "login": "Login",
   "email": "Email",
-  "password": "Password"
+  "password": "Password",
+
+  "welcome": "Welcome",
+  "search": "Search",
+  "next": "Next",
+  "skip": "Skip",
+  "start": "Start",
+
+  "home": "Home",
+  "notifications": "Notifications",
+  "profile": "Profile",
+  "cart": "Cart",
+
+  "@login": {
+    "description": "Login button label"
+  }
 }

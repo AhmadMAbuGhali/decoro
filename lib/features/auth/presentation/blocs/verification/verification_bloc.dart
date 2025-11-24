@@ -1,10 +1,10 @@
 import 'package:bloc/bloc.dart';
 import 'verification_event.dart';
 import 'verification_state.dart';
-import '../../../data/repositories/auth_repository_impl.dart';
+import '../../../domain/repositories/auth_repository.dart';
 
 class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
-  final AuthRepositoryImpl authRepository;
+  final AuthRepository authRepository;
 
   VerificationBloc(this.authRepository) : super(VerificationInitial()) {
     on<SendVerificationCode>(_onSendCode);

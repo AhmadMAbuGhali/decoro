@@ -1,9 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/auth_repository.dart';
+import '../verification/verification_event.dart';
 
 part 'reset_code_event.dart';
 part 'reset_code_state.dart';
-
 class ResetCodeBloc extends Bloc<ResetCodeEvent, ResetCodeState> {
   final AuthRepository repository;
 
@@ -18,7 +18,11 @@ class ResetCodeBloc extends Bloc<ResetCodeEvent, ResetCodeState> {
     emit(state.copyWith(isLoading: true, errorMessage: ''));
 
     try {
-      await repository.verifyResetCode(event.email, event.code);
+      await repository.verifyResetCode(
+        event.email,
+        event.code,
+        event.type,   // 👈 تمت الإضافة
+      );
 
       emit(state.copyWith(isLoading: false, success: true));
     } catch (e) {

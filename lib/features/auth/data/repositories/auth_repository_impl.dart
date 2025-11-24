@@ -1,263 +1,223 @@
+// lib/features/auth/data/repositories/auth_repository_impl.dart
+
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import '../../../../core/services/network/api_client.dart';
-import '../../../../config/constants/api_endpoints.dart';
-import '../../domain/entities/user_entity.dart';
-import '../../domain/repositories/auth_repository.dart';
+import 'package:decoro/config/constants/api_endpoints.dart';
+import 'package:decoro/core/services/session/session_manager.dart';
+import 'package:decoro/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:decoro/features/auth/domain/entities/user_entity.dart';
+import 'package:decoro/features/auth/domain/repositories/auth_repository.dart';
 import '../../presentation/blocs/verification/verification_event.dart';
-import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final ApiClient _api = ApiClient();
+  final AuthRemoteDataSource remote;
+  final SessionManager session;
 
-  // ---------------------------
-  // 🔹 تسجيل الدخول بواسطة Google
-  // ---------------------------
-  @override
-  Future<void> signInWithGoogle() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    print('🔹 Sign in with Google (mock)');
+  AuthRepositoryImpl({
+    required this.remote,
+    required this.session,
+  });
+
+  // -----------------------
+  // Helpers
+  // -----------------------
+  Future<void> _saveSessionFromMap(Map<String, dynamic> data) async {
+    final access = data['accessToken'] ?? data['token'];
+    final refresh = data['refreshToken'] ?? data['refresh'];
+
+    if (access == null || refresh == null) {
+      throw Exception("Invalid token response from server");
+    }
+
+    await session.saveTokens(
+      accessToken: access.toString(),
+      refreshToken: refresh.toString(),
+    );
+
+    final userJson = data['user'] ?? data['data'] ?? data;
+    await session.saveUserRaw(jsonEncode(userJson));
   }
 
-  // ---------------------------
-  // 🔹 تسجيل الدخول بواسطة Apple
-  // ---------------------------
-  @override
-  Future<void> signInWithApple() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    print('🔹 Sign in with Apple (mock)');
+  String _extractMsg(DioException e) {
+    final resp = e.response;
+    if (resp != null && resp.data != null) {
+      if (resp.data is Map && resp.data['message'] != null) {
+        return resp.data['message'];
+      }
+      if (resp.data is String) return resp.data;
+      return jsonEncode(resp.data);
+    }
+    return e.message ?? 'Network error';
   }
 
-  // ---------------------------
-  // 🔹 تسجيل الدخول بواسطة البريد
-  // ---------------------------
+  // -----------------------
+  // LOGIN
+  // -----------------------
   @override
-  Future<UserEntity> signInWithEmail(String email, String password) async {
+  Future<UserEntity> login(String email, String password) async {
     try {
-      final response = await _api.post(ApiEndpoints.login, {
-        'email': email,
-        'password': password,
-      });
+      print("🔵 Calling remote.login…");
+      final res = await remote.login(email, password);
+      print("🟢 Response from server: $res");
 
-      print('📬 LOGIN RESPONSE TYPE: ${response.data.runtimeType}');
-      print('📬 LOGIN RESPONSE: ${response.data}');
+      await _saveSessionFromMap(res);
 
-      final data = response.data is String
-          ? jsonDecode(response.data)
-          : response.data;
+      final userMap = res['user'] is String
+          ? jsonDecode(res['user'])
+          : Map<String, dynamic>.from(res['user']);
 
-      return UserModel(
-        id: data['_id'] ?? '',
-        name: data['name'] ?? '',
-        email: data['email'] ?? '',
+      return UserEntity.fromJson(userMap);
+
+    } on DioException catch (e) {
+      print("❌ DioException: ${_extractMsg(e)}");
+      throw Exception(_extractMsg(e));
+
+    } catch (e, s) {
+      print("❌ GENERAL ERROR: $e");
+      print("📌 STACK: $s");
+      throw Exception("Login failed: $e");
+    }
+  }
+
+  // -----------------------
+  // REGISTER
+  // -----------------------
+  @override
+  Future<UserEntity> register(String name, String email, String password) async {
+    try {
+      final res = await remote.register(name, email, password);
+      await _saveSessionFromMap(res);
+
+      return UserEntity.fromJson(
+        res['user'] is String
+            ? jsonDecode(res['user'])
+            : Map<String, dynamic>.from(res['user']),
       );
     } on DioException catch (e) {
-      throw Exception(
-          e.response?.data['message'] ?? 'Network error during login');
-    } catch (e) {
-      throw Exception('Unexpected error: $e');
+      throw Exception(_extractMsg(e));
     }
   }
 
-  // ---------------------------
-  // 🔹 تسجيل جديد (مؤقت عبر signUp)
-  // ---------------------------
+  // -----------------------
+  // ME
+  // -----------------------
   @override
-  Future<UserEntity> registerWithEmail(String email, String password) async {
-    return signUp(name: "User", email: email, password: password);
+  Future<UserEntity?> me() async {
+    final raw = await session.getUserRaw();
+    if (raw == null || raw.isEmpty) return null;
+
+    return UserEntity.fromJson(jsonDecode(raw));
   }
 
-  // ---------------------------
-  // 🔹 إنشاء حساب جديد
-  // ---------------------------
+  // -----------------------
+  // LOGOUT
+  // -----------------------
   @override
-  Future<UserEntity> signUp({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
+  Future<void> logout() async {
     try {
-      final response = await _api.post(ApiEndpoints.register, {
-        'name': name,
-        'email': email,
-        'password': password,
-      });
+      await remote.logout();
+    } catch (_) {}
+    await session.clear();
+  }
 
-      print('📬 STATUS CODE: ${response.statusCode}');
-      print('📬 RAW RESPONSE TYPE: ${response.data.runtimeType}');
-      print('📬 RAW RESPONSE DATA: ${response.data}');
 
-      dynamic data;
+  @override
+  Future<bool> isLoggedIn() async {
+    final token = await session.getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
 
-      // ✅ نفك JSON إذا كان نص
-      if (response.data is String) {
-        try {
-          data = jsonDecode(response.data);
-        } catch (e) {
-          print('⚠️ JSON Decode failed: $e');
-          throw Exception('Invalid JSON response from server');
-        }
-      } else {
-        data = response.data;
-      }
+  @override
+  Future<String?> getAccessToken() async {
+    return await session.getAccessToken();
+  }
 
-      print('✅ PARSED DATA: $data');
+  @override
+  Future<String?> getRefreshToken() async {
+    return await session.getRefreshToken();
+  }
+  // -----------------------
+  // REFRESH TOKENS
+  // -----------------------
+  @override
+  Future<void> refreshIfNeeded() async {
+    try {
+      final refresh = await session.getRefreshToken();
+      if (refresh == null) throw Exception("No refresh token");
 
-      // ✅ التعامل مع الرد سواء فيه "user" أو لا
-      final userData = data['user'] ?? data;
+      final res = await remote.refresh(refresh);
 
-      return UserModel(
-        id: userData['_id']?.toString() ?? '',
-        name: userData['name'] ?? '',
-        email: userData['email'] ?? '',
+      await session.saveTokens(
+        accessToken: res['accessToken'],
+        refreshToken: res['refreshToken'],
       );
-    } on DioException catch (e) {
-      print('❌ DioException: ${e.response?.data}');
-      throw Exception(
-          e.response?.data['message'] ?? 'Network error during registration');
-    } catch (e) {
-      print('❌ Unexpected error: $e');
-      throw Exception('Unexpected error: $e');
-    }
-  }
 
-  // ---------------------------
-  // ✅ إرسال كود التحقق للإيميل
-  // ---------------------------
-  Future<void> sendEmailVerification(String email, VerificationType type) async {
-    try {
-      final response = await _api.post(ApiEndpoints.sendVerification, {
-        'email': email,
-        'type': type == VerificationType.emailVerification
-            ? 'email_verification'
-            : 'password_reset',
-      });
-
-      print('📨 SEND VERIFICATION RESPONSE: ${response.data}');
-      print('📨 RESPONSE TYPE: ${response.data.runtimeType}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Verification code sent to $email (${type.name})');
-      } else {
-        throw Exception(response.data['message'] ?? 'Failed to send code');
+      if (res['user'] != null) {
+        await session.saveUserRaw(jsonEncode(res['user']));
       }
-    } on DioException catch (e) {
-      print('❌ DioException while sending code: ${e.response?.data}');
-      throw Exception(
-          e.response?.data['message'] ?? 'Network error sending code');
-    } catch (e) {
-      print('❌ Unexpected error while sending code: $e');
-      throw Exception('Unexpected error: $e');
+    } catch (_) {
+      await session.clear();
+      rethrow;
     }
   }
 
-  // ---------------------------
-  // ✅ التحقق من كود الإيميل
-  // ---------------------------
+  // -----------------------
+  // VERIFICATION
+  // -----------------------
+  @override
+  Future<void> sendEmailVerification(
+      String email, VerificationType type) async {
+    try {
+      await remote.sendVerification(email, type);
+    } on DioException catch (e) {
+      throw Exception(_extractMsg(e));
+    }
+  }
+
+  @override
   Future<bool> verifyEmailCode(
       String email, String code, VerificationType type) async {
     try {
-      final response = await _api.post(ApiEndpoints.verifyCode, {
-        'email': email,
-        'code': code,
-        'type': type == VerificationType.emailVerification
-            ? 'email_verification'
-            : 'password_reset',
-      });
-
-      print('📩 VERIFY RESPONSE TYPE: ${response.data.runtimeType}');
-      print('📩 VERIFY RESPONSE: ${response.data}');
-
-      // ✅ تحليل النتيجة حسب نوعها
-      dynamic data;
-      if (response.data is String) {
-        try {
-          data = jsonDecode(response.data);
-        } catch (_) {
-          data = response.data;
-        }
-      } else {
-        data = response.data;
-      }
-
-      if (data is Map && data['message'] != null) {
-        print('✅ Verification success message: ${data['message']}');
-        return true;
-      }
-
-      if (data is String &&
-          (data.contains('verified') || data.contains('success'))) {
-        print('✅ Verification success (string detected)');
-        return true;
-      }
-
-      return false;
+      final ok = await remote.verifyCode(email, code, type);
+      return ok;
     } on DioException catch (e) {
-      print('❌ DioException verifying: ${e.response?.data}');
-      throw Exception(
-          e.response?.data['message'] ?? 'Verification request failed');
-    } catch (e) {
-      print('❌ Unexpected error verifying: $e');
-      throw Exception('Unexpected error: $e');
+      throw Exception(_extractMsg(e));
     }
   }
+
   @override
+  Future<void> verifyResetCode(
+      String email, String code, VerificationType type) async {
+    try {
+      await remote.verifyResetCode(email, code, type);
+    } on DioException catch (e) {
+      throw Exception(_extractMsg(e));
+    }
+  }
+
+  // -----------------------
+  // FORGOT / RESET PASSWORD
+  // -----------------------
   Future<void> forgotPassword(String email) async {
     try {
-      print("📨 REPOSITORY CALL TRIGGERED");
-
-      final res = await _api.post(ApiEndpoints.forgotPassword, {
-        'email': email,
-      });
-
-      print("🔵 STATUS = ${res.statusCode}");
-      print("🔵 DATA = ${res.data}");
-
-      if (res.statusCode == 200) {
-        print("📩 Reset code sent to email");
-      } else {
-        throw Exception(res.data['message'] ?? "Failed to send reset code");
-      }
+      await remote.forgotPassword(email);
     } on DioException catch (e) {
-      print("❌ DIO ERROR = ${e.response?.data}");
-      throw Exception(e.response?.data['message'] ?? "Network error");
-    }
-  }
-  // ===============================
-  // 🔵 Step 2 – Verify Reset Code
-  // ===============================
-  @override
-  Future<void> verifyResetCode(String email, String code) async {
-    try {
-      final res = await _api.post(ApiEndpoints.verifyResetCode, {
-        'email': email,
-        'code': code,
-      });
-
-      if (res.statusCode != 200) {
-        throw Exception("Invalid code");
-      }
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? "Invalid or expired code");
+      throw Exception(_extractMsg(e));
     }
   }
 
-  // ===============================
-  // 🔵 Step 3 – Reset Password
-  // ===============================
-  @override
   Future<void> resetPassword(String email, String newPassword) async {
     try {
-      final res = await _api.post(ApiEndpoints.resetPassword, {
-        'email': email,
-        'newPassword': newPassword,
-      });
-
-      if (res.statusCode != 200) {
-        throw Exception(res.data['message'] ?? "Failed to reset password");
-      }
+      await remote.resetPassword(email, newPassword);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? "Network error");
+      throw Exception(_extractMsg(e));
     }
   }
+
+  // -----------------------
+  // SOCIAL AUTH (placeholder)
+  // -----------------------
+  Future<void> signInWithGoogle() async => throw Exception("Not implemented");
+  Future<void> signInWithApple() async => throw Exception("Not implemented");
+  Future<void> signInWithFacebook() async => throw Exception("Not implemented");
 }

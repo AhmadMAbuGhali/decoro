@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'package:flutter_svg/flutter_svg.dart';
+
 import '../../../../../../config/constants/asset_paths.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
@@ -14,29 +14,38 @@ class SocialLoginButtons extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 10),
+
+        // ===== Separator =====
         Row(
-          children: [
-          Expanded(child: Divider()),
-             Text("   Or continue with   ", style: TextStyle(color: Colors.black54)),
+          children: const [
+            Expanded(child: Divider()),
+            Text("   Or continue with   ",
+                style: TextStyle(color: Colors.black54)),
             Expanded(child: Divider()),
           ],
         ),
+
         const SizedBox(height: 16),
+
+        // ===== Social Buttons =====
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _socialButton(
-              onTap: () => context.read<AuthBloc>().add(AuthWithGoogleRequested()),
+              onTap: () =>
+                  context.read<AuthBloc>().add(AuthGoogleRequested()),
               asset: AssetPaths.googleIcon,
             ),
             const SizedBox(width: 12),
             _socialButton(
-              onTap: () => context.read<AuthBloc>().add(AuthWithAppleRequested()),
+              onTap: () =>
+                  context.read<AuthBloc>().add(AuthAppleRequested()),
               icon: Icons.apple,
             ),
             const SizedBox(width: 12),
             _socialButton(
-              onTap: () => context.read<AuthBloc>().add(AuthWithFacebookRequested()),
+              onTap: () =>
+                  context.read<AuthBloc>().add(AuthFacebookRequested()),
               asset: AssetPaths.facebookIcon,
             ),
           ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme/app_colors.dart';
 
 class ProgressIndicatorDots extends StatelessWidget {
   final int itemCount;
@@ -17,13 +16,14 @@ class ProgressIndicatorDots extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(itemCount, (index) {
         final isActive = index == currentIndex;
+
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.symmetric(horizontal: 4),
           height: 8,
           width: isActive ? 20 : 8,
           decoration: BoxDecoration(
-            color: Colors.white, // نجعل اللون أبيض
+            color: Colors.white,
             borderRadius: BorderRadius.circular(4),
           ),
         );

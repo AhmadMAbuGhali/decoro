@@ -7,13 +7,18 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
   final OnboardingRepository repository;
 
   OnboardingBloc(this.repository) : super(OnboardingInitial()) {
+
     on<OnboardingPageChangedEvent>((event, emit) {
       emit(OnboardingPageChanged(event.page));
     });
 
     on<OnboardingCompleteRequested>((event, emit) async {
-      await repository.completeOnboarding();
-      emit(OnboardingSaved());
+      try {
+        await repository.completeOnboarding();
+        emit(OnboardingSaved());
+      } catch (e) {
+        // future: handle error state
+      }
     });
   }
 }

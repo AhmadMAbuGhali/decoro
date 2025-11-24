@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-
 
 import 'bloc_observer.dart';
 import 'di.dart';
 
 Future<void> bootstrap() async {
-  // Setup dependency injection
-  await initDependencies();
+  // Ensure binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // Setup Bloc observer
-  Bloc.observer = AppBlocObserver();
+  try {
+    // 1) Setup Dependency Injection
+    await initDependencies();
 
-  // Initialize other services (logging, crashlytics, etc.)
-  // Example placeholder
-  debugPrint("Bootstrap complete");
+    // 2) Setup Bloc Global Observer
+    Bloc.observer = AppBlocObserver();
+
+    // 3) Initialize other core services (logging, analytics, crash reporters...etc)
+    // Example:
+    // await LoggerService.init();
+    // await CrashlyticsService.init();
+
+    debugPrint("🚀 Bootstrap completed successfully");
+  } catch (e, st) {
+    debugPrint("❌ Bootstrap failed: $e\n$st");
+
+    // يمكنك عمل rethrow إذا بدك توقف التطبيق
+    // rethrow;
+  }
 }

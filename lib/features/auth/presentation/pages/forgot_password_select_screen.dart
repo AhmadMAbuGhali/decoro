@@ -5,8 +5,8 @@ import '../../../../config/router/route_path.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../blocs/forgot_password/forgot_password_bloc.dart';
-import '../blocs/verification/verification_event.dart';
 import '../widgets/login/login_toggle.dart';
+import '../blocs/verification/verification_event.dart';
 
 class ForgotPasswordSelectScreen extends StatefulWidget {
   const ForgotPasswordSelectScreen({super.key});
@@ -52,14 +52,13 @@ class _ForgotPasswordSelectScreenState
           child: BlocConsumer<ForgotPasswordBloc, ForgotPasswordState>(
             listener: (context, state) {
               if (state.success) {
-                // ✅ إرسال البيانات بشكل Map لتفادي الخطأ
                 Navigator.of(context).pushNamed(
                   RoutePaths.verificationCode,
                   arguments: {
                     'email': isEmailSelected
                         ? _emailController.text.trim()
                         : _phoneController.text.trim(),
-                    'type': VerificationType.passwordReset,// نوع العملية
+                    'type': VerificationType.passwordReset,
                   },
                 );
               } else if (state.errorMessage.isNotEmpty) {
@@ -80,7 +79,7 @@ class _ForgotPasswordSelectScreenState
                     ),
                     const SizedBox(height: 20),
 
-                    // ✅ التبديل بين البريد والهاتف
+                    /// 🔵 اختيار Email أو Phone
                     LoginToggle(
                       isEmailSelected: isEmailSelected,
                       onChanged: (value) {
@@ -89,63 +88,50 @@ class _ForgotPasswordSelectScreenState
                     ),
                     const SizedBox(height: 30),
 
-                    // ✅ حقل البريد أو الهاتف
+                    /// 🔵 Email Input
                     if (isEmailSelected)
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
+                          if (value == null || value.trim().isEmpty) {
                             return 'Please enter your email';
-                          } else if (!RegExp(
-                              r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$')
-                              .hasMatch(value)) {
+                          }
+                          final regex = RegExp(
+                              r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$');
+                          if (!regex.hasMatch(value.trim())) {
                             return 'Enter a valid email';
                           }
                           return null;
                         },
-                        decoration: InputDecoration(
-                          labelText: "Email",
-                          hintText: "Enter your email address",
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          prefixIcon: const Icon(Icons.email_outlined,
-                              color: Colors.black),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
+                        decoration: _inputDecoration(
+                          label: "Email",
+                          icon: Icons.email_outlined,
                         ),
                       )
                     else
+                    /// 🔵 Phone Input
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your phone number';
-                          } else if (!RegExp(r'^[0-9]{6,}$').hasMatch(value)) {
+                          } else if (!RegExp(r'^[0-9]{6,}$')
+                              .hasMatch(value.trim())) {
                             return 'Enter a valid phone number';
                           }
                           return null;
                         },
-                        decoration: InputDecoration(
-                          labelText: "Phone Number",
-                          hintText: "Enter your phone number",
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          prefixIcon: const Icon(Icons.phone_outlined,
-                              color: Colors.black),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
+                        decoration: _inputDecoration(
+                          label: "Phone Number",
+                          icon: Icons.phone_outlined,
                         ),
                       ),
 
                     const Spacer(),
 
-                    // ✅ زر الإرسال
+                    /// 🔵 Continue Button
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -153,15 +139,12 @@ class _ForgotPasswordSelectScreenState
                         onPressed: state.isLoading
                             ? null
                             : () {
-
                           if (_formKey.currentState!.validate()) {
                             final input = isEmailSelected
                                 ? _emailController.text.trim()
                                 : _phoneController.text.trim();
-                            print("EMAIL INPUT = $input");
+
                             context
-
-
                                 .read<ForgotPasswordBloc>()
                                 .add(SendForgotRequest(input));
                           }
@@ -192,6 +175,22 @@ class _ForgotPasswordSelectScreenState
             },
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      prefixIcon: Icon(icon, color: Colors.black),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
       ),
     );
   }

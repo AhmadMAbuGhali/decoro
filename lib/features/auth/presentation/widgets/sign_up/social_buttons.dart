@@ -12,17 +12,18 @@ class SocialButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20), // مسافة من الجوانب
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Google
           Center(
             child: SizedBox(
               width: 335,
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  context.read<AuthBloc>().add(AuthWithGoogleRequested());
+                  context.read<AuthBloc>().add(AuthGoogleRequested());
                 },
                 icon: SvgPicture.asset(
                   AssetPaths.googleIcon,
@@ -31,37 +32,40 @@ class SocialButtons extends StatelessWidget {
                 ),
                 label: const Text(
                   'Sign Up with Google',
-                  style: TextStyle(color: AppColors.black),
+                  style: TextStyle(color: Colors.black),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
-                    side: const BorderSide(color: Colors.black),
+                    side: BorderSide(color: Colors.black),
                   ),
                 ),
               ),
             ),
           ),
+
           const SizedBox(height: 12),
+
+          // Apple
           Center(
             child: SizedBox(
               width: 335,
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  context.read<AuthBloc>().add(AuthWithAppleRequested());
+                  context.read<AuthBloc>().add(AuthAppleRequested());
                 },
                 icon: const Icon(Icons.apple, color: Colors.black, size: 25),
                 label: const Text(
                   'Sign Up with Apple',
-                  style: TextStyle(color: AppColors.black),
+                  style: TextStyle(color: Colors.black),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
-                    side: const BorderSide(color: Colors.black),
+                    side: BorderSide(color: Colors.black),
                   ),
                 ),
               ),

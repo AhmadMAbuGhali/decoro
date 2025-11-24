@@ -1,9 +1,21 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'app.dart';
 import 'bootstrap.dart';
+import 'env.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await bootstrap(); // initialize DI, services, logging, etc.
-  runApp(App());
+
+  // 🟡 Optional: Change environment here
+  // AppEnv.setEnvironment(Environment.staging);
+
+  // 🔥 Run app in protected zone
+  await runZonedGuarded(() async {
+    await bootstrap(); // DI, services, logging...
+    runApp(const App());
+  }, (error, stack) {
+    // Global unexpected error logging
+    debugPrint("🔥 Uncaught Error: $error");
+  });
 }
